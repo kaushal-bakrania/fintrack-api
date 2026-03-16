@@ -2,9 +2,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using Microsoft.OpenApi;
 using System.Text;
 using FinTrackAPI.Data;
+using FinTrackAPI.Services;
+using Hangfire;
+using Hangfire.SqlServer;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,9 +40,22 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+// Database
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// Hangfire
+builder.Services.AddHangfire(config => config
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UseSqlServerStorage(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddHangfireServer();
+
+// Services
+builder.Services.AddScoped<ReportService>();
+
+// JWT Authentication
 var jwtKey = builder.Configuration["Jwt:Key"]!;
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -72,6 +87,16 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Hangfire Dashboard
+app.UseHangfireDashboard("/hangfire");
+
+// Schedule monthly report job - runs on 1st of every month at midnight
+RecurringJob.AddOrUpdate<ReportService>(
+    "monthly-report",
+    service => service.GenerateMonthlyReportsAsync(),
+    Cron.Monthly);
+
 app.MapControllers();
 
 app.Run();

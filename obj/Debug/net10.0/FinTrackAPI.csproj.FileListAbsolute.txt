@@ -178,3 +178,4 @@
 /Users/fellix/Projects/FinTrackAPI/bin/Debug/net10.0/Swashbuckle.AspNetCore.Swagger.dll
 /Users/fellix/Projects/FinTrackAPI/bin/Debug/net10.0/Swashbuckle.AspNetCore.SwaggerGen.dll
 /Users/fellix/Projects/FinTrackAPI/bin/Debug/net10.0/Swashbuckle.AspNetCore.SwaggerUI.dll
+/Users/fellix/Projects/FinTrackAPI/obj/Debug/net10.0/FinTrackAPI.sourcelink.json

@@ -31,6 +31,7 @@ jobs:
         with:
           name: .net-app
           path: ${{github.workspace}}/myapp
+          include-hidden-files: true
 
   deploy:
     runs-on: windows-latest

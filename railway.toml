@@ -1,4 +1,0 @@
-cat > ~/Projects/FinTrackAPI/railway.toml << 'EOF'
-[build]
-builder = "dockerfile"
-EOF

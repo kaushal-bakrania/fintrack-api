@@ -6,9 +6,20 @@ using System.Text;
 using FinTrackAPI.Data;
 using FinTrackAPI.Services;
 using Hangfire;
+using Hangfire.Dashboard;
 using Hangfire.SqlServer;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -86,7 +97,10 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 // Hangfire Dashboard
-app.UseHangfireDashboard("/hangfire");
+app.UseHangfireDashboard("/hangfire", new DashboardOptions
+{
+    Authorization = new List<IDashboardAuthorizationFilter>()
+});
 
 // Schedule monthly report job - runs on 1st of every month at midnight
 RecurringJob.AddOrUpdate<ReportService>(

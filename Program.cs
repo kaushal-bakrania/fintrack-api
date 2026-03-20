@@ -81,7 +81,7 @@ var app = builder.Build();
         c.RoutePrefix = string.Empty;
     });
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 

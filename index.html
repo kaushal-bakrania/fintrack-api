@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FinTrack — Personal Finance Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #f0f4ff;
+    --muted: #8892a4;
+    --accent: #4f8ef7;
+    --accent2: #34d399;
+    --danger: #f87171;
+    --warning: #fbbf24;
+    --mono: 'DM Mono', monospace;
+    --sans: 'Sora', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; }
+
+  #auth-screen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    background: var(--bg);
+  }
+  .auth-card {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 16px;
+    padding: 2.5rem;
+    width: 100%;
+    max-width: 420px;
+  }
+  .auth-logo { font-size: 1.5rem; font-weight: 600; color: var(--accent); font-family: var(--mono); margin-bottom: 0.25rem; }
+  .auth-sub { font-size: 0.85rem; color: var(--muted); margin-bottom: 2rem; }
+  .tab-row { display: flex; margin-bottom: 1.5rem; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .tab-btn { flex: 1; padding: 0.6rem; background: transparent; border: none; color: var(--muted); font-family: var(--sans); font-size: 0.85rem; cursor: pointer; transition: all 0.15s; }
+  .tab-btn.active { background: var(--accent); color: white; }
+  .field { margin-bottom: 1rem; }
+  .field label { display: block; font-size: 0.75rem; color: var(--muted); margin-bottom: 0.4rem; letter-spacing: 0.05em; text-transform: uppercase; }
+  .field input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 0.7rem 1rem; color: var(--text); font-family: var(--sans); font-size: 0.9rem; outline: none; transition: border 0.15s; }
+  .field input:focus { border-color: var(--accent); }
+  .btn-primary { width: 100%; padding: 0.8rem; background: var(--accent); border: none; border-radius: 8px; color: white; font-family: var(--sans); font-size: 0.9rem; font-weight: 500; cursor: pointer; transition: opacity 0.15s; }
+  .btn-primary:hover { opacity: 0.85; }
+  .auth-error { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3); border-radius: 8px; padding: 0.7rem 1rem; font-size: 0.82rem; color: var(--danger); margin-top: 1rem; display: none; }
+
+  #dashboard { display: none; }
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .topbar-logo { font-family: var(--mono); font-size: 1.1rem; color: var(--accent); font-weight: 500; }
+  .topbar-right { display: flex; align-items: center; gap: 1rem; }
+  .topbar-user { font-size: 0.82rem; color: var(--muted); }
+  .btn-sm { padding: 0.4rem 0.9rem; background: transparent; border: 1px solid var(--border2); border-radius: 6px; color: var(--muted); font-family: var(--sans); font-size: 0.8rem; cursor: pointer; transition: all 0.15s; }
+  .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+
+  .main { padding: 2rem; max-width: 1200px; margin: 0 auto; }
+  .page-title { font-size: 1.4rem; font-weight: 600; margin-bottom: 0.25rem; }
+  .page-sub { font-size: 0.85rem; color: var(--muted); margin-bottom: 2rem; }
+
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; }
+  .stat-label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.5rem; }
+  .stat-value { font-size: 1.6rem; font-weight: 600; font-family: var(--mono); }
+  .stat-value.green { color: var(--accent2); }
+  .stat-value.red { color: var(--danger); }
+  .stat-value.blue { color: var(--accent); }
+
+  .section-title { font-size: 0.95rem; font-weight: 500; margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between; }
+  .accounts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+  .account-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; position: relative; overflow: hidden; }
+  .account-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--accent); }
+  .account-card.savings::before { background: var(--accent2); }
+  .account-name { font-size: 0.82rem; color: var(--muted); margin-bottom: 0.25rem; }
+  .account-type { font-size: 0.7rem; color: var(--accent); font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.75rem; }
+  .account-type.savings { color: var(--accent2); }
+  .account-balance { font-size: 1.8rem; font-weight: 600; font-family: var(--mono); }
+  .account-id { font-size: 0.7rem; color: var(--muted); margin-top: 0.5rem; font-family: var(--mono); }
+
+  .transactions-section { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 2rem; overflow: hidden; }
+  .tx-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; }
+  .filter-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .filter-btn { padding: 0.3rem 0.75rem; background: transparent; border: 1px solid var(--border); border-radius: 20px; color: var(--muted); font-family: var(--sans); font-size: 0.75rem; cursor: pointer; transition: all 0.15s; }
+  .filter-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(79,142,247,0.1); }
+  .filter-btn.credit.active { border-color: var(--accent2); color: var(--accent2); background: rgba(52,211,153,0.1); }
+  .filter-btn.debit.active { border-color: var(--danger); color: var(--danger); background: rgba(248,113,113,0.1); }
+  .tx-list { max-height: 400px; overflow-y: auto; }
+  .tx-row { display: flex; align-items: center; padding: 0.9rem 1.5rem; border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  .tx-row:hover { background: var(--surface2); }
+  .tx-row:last-child { border-bottom: none; }
+  .tx-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; margin-right: 1rem; flex-shrink: 0; }
+  .tx-icon.credit { background: rgba(52,211,153,0.15); color: var(--accent2); }
+  .tx-icon.debit { background: rgba(248,113,113,0.15); color: var(--danger); }
+  .tx-icon.transfer { background: rgba(79,142,247,0.15); color: var(--accent); }
+  .tx-desc { flex: 1; }
+  .tx-desc-text { font-size: 0.85rem; }
+  .tx-desc-meta { font-size: 0.72rem; color: var(--muted); margin-top: 0.1rem; font-family: var(--mono); }
+  .tx-amount { font-family: var(--mono); font-size: 0.9rem; font-weight: 500; text-align: right; }
+  .tx-amount.credit { color: var(--accent2); }
+  .tx-amount.debit { color: var(--danger); }
+  .tx-amount.transfer { color: var(--accent); }
+
+  .reports-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+  .report-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; }
+  .report-month { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.75rem; font-family: var(--mono); }
+  .report-row { display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0; border-bottom: 1px solid var(--border); }
+  .report-row:last-of-type { border-bottom: none; }
+  .report-row-label { font-size: 0.82rem; color: var(--muted); }
+  .report-row-val { font-family: var(--mono); font-size: 0.9rem; font-weight: 500; }
+  .bar-wrap { margin-top: 0.75rem; }
+  .bar-label { display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--muted); margin-bottom: 0.3rem; }
+  .bar-bg { background: var(--surface2); border-radius: 4px; height: 6px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+
+  .loading { display: flex; align-items: center; justify-content: center; padding: 3rem; }
+  .spinner { width: 24px; height: 24px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .empty { text-align: center; padding: 2rem; color: var(--muted); font-size: 0.85rem; }
+
+  .new-account-btn { padding: 0.4rem 0.9rem; background: rgba(79,142,247,0.1); border: 1px solid rgba(79,142,247,0.3); border-radius: 6px; color: var(--accent); font-family: var(--sans); font-size: 0.78rem; cursor: pointer; transition: all 0.15s; }
+  .new-account-btn:hover { background: rgba(79,142,247,0.2); }
+
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 100; }
+  .modal { background: var(--surface); border: 1px solid var(--border2); border-radius: 16px; padding: 2rem; width: 100%; max-width: 380px; }
+  .modal-title { font-size: 1rem; font-weight: 500; margin-bottom: 1.5rem; }
+  .modal-close { float: right; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1.2rem; }
+  .modal-footer { display: flex; gap: 0.75rem; margin-top: 1.25rem; }
+  .btn-ghost { flex: 1; padding: 0.7rem; background: transparent; border: 1px solid var(--border2); border-radius: 8px; color: var(--muted); font-family: var(--sans); font-size: 0.85rem; cursor: pointer; }
+  .btn-confirm { flex: 1; padding: 0.7rem; background: var(--accent); border: none; border-radius: 8px; color: white; font-family: var(--sans); font-size: 0.85rem; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">FinTrack</div>
+    <div class="auth-sub">Personal Finance Dashboard</div>
+    <div class="tab-row">
+      <button class="tab-btn active" onclick="switchTab('login')">Sign in</button>
+      <button class="tab-btn" onclick="switchTab('register')">Register</button>
+    </div>
+    <div id="login-form">
+      <div class="field"><label>Email</label><input type="email" id="login-email" placeholder="you@example.com" /></div>
+      <div class="field"><label>Password</label><input type="password" id="login-password" placeholder="••••••••" /></div>
+      <button class="btn-primary" onclick="login()">Sign in</button>
+    </div>
+    <div id="register-form" style="display:none">
+      <div class="field"><label>Full name</label><input type="text" id="reg-name" placeholder="Kaushal Bakrania" /></div>
+      <div class="field"><label>Email</label><input type="email" id="reg-email" placeholder="you@example.com" /></div>
+      <div class="field"><label>Password</label><input type="password" id="reg-password" placeholder="••••••••" /></div>
+      <button class="btn-primary" onclick="register()">Create account</button>
+    </div>
+    <div class="auth-error" id="auth-error"></div>
+  </div>
+</div>
+
+<div id="dashboard">
+  <div class="topbar">
+    <div class="topbar-logo">FinTrack</div>
+    <div class="topbar-right">
+      <span class="topbar-user" id="user-label"></span>
+      <button class="btn-sm" onclick="logout()">Sign out</button>
+    </div>
+  </div>
+  <div class="main">
+    <div class="page-title">Dashboard</div>
+    <div class="page-sub" id="dash-date"></div>
+
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">Total balance</div><div class="stat-value blue" id="stat-balance">—</div></div>
+      <div class="stat-card"><div class="stat-label">Total income</div><div class="stat-value green" id="stat-income">—</div></div>
+      <div class="stat-card"><div class="stat-label">Total expenses</div><div class="stat-value red" id="stat-expenses">—</div></div>
+      <div class="stat-card"><div class="stat-label">Transactions</div><div class="stat-value" id="stat-txcount">—</div></div>
+    </div>
+
+    <div class="section-title">
+      <span>Accounts</span>
+      <button class="new-account-btn" onclick="showNewAccount()">+ New account</button>
+    </div>
+    <div class="accounts-grid" id="accounts-grid">
+      <div class="loading"><div class="spinner"></div></div>
+    </div>
+
+    <div class="transactions-section">
+      <div class="tx-header">
+        <span style="font-size:0.95rem;font-weight:500;">Transactions</span>
+        <div class="filter-row">
+          <button class="filter-btn active" onclick="filterTx('all', this)">All</button>
+          <button class="filter-btn credit" onclick="filterTx('Credit', this)">Credits</button>
+          <button class="filter-btn debit" onclick="filterTx('Debit', this)">Debits</button>
+        </div>
+      </div>
+      <div class="tx-list" id="tx-list">
+        <div class="loading"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <div class="section-title"><span>Monthly reports</span></div>
+    <div class="reports-grid" id="reports-grid">
+      <div class="loading"><div class="spinner"></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-bg">
+  <div class="modal">
+    <button class="modal-close" onclick="hideModal()">&#x2715;</button>
+    <div class="modal-title">New account</div>
+    <div class="field"><label>Account name</label><input type="text" id="acc-name" placeholder="e.g. Main Current" /></div>
+    <div class="field">
+      <label>Type</label>
+      <select id="acc-type" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:0.7rem 1rem;color:var(--text);font-family:var(--sans);font-size:0.9rem;outline:none;">
+        <option value="Current">Current</option>
+        <option value="Savings">Savings</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="hideModal()">Cancel</button>
+      <button class="btn-confirm" onclick="createAccount()">Create</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'http://20.68.108.61';
+let token = localStorage.getItem('ft_token') || '';
+let allTx = [];
+
+function fmt(n) { return '£' + parseFloat(n).toLocaleString('en-GB', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+function fmtDate(d) { return new Date(d).toLocaleDateString('en-GB', {day:'2-digit', month:'short', year:'numeric'}); }
+function monthName(m, y) { return new Date(y, m-1).toLocaleString('en-GB', {month:'long', year:'numeric'}); }
+
+function switchTab(tab) {
+  document.getElementById('login-form').style.display = tab === 'login' ? '' : 'none';
+  document.getElementById('register-form').style.display = tab === 'register' ? '' : 'none';
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', (tab==='login'&&i===0)||(tab==='register'&&i===1)));
+}
+
+function showError(msg) {
+  const e = document.getElementById('auth-error');
+  e.textContent = msg; e.style.display = '';
+}
+
+async function login() {
+  const email = document.getElementById('login-email').value;
+  const pass = document.getElementById('login-password').value;
+  try {
+    const r = await fetch(API+'/api/auth/login', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email, password:pass})});
+    const d = await r.json();
+    if (!r.ok) { showError(d || 'Login failed'); return; }
+    token = d.token;
+    localStorage.setItem('ft_token', token);
+    showDashboard();
+  } catch(e) { showError('Cannot connect to API. Check the server is running.'); }
+}
+
+async function register() {
+  const fullName = document.getElementById('reg-name').value;
+  const email = document.getElementById('reg-email').value;
+  const password = document.getElementById('reg-password').value;
+  try {
+    const r = await fetch(API+'/api/auth/register', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({fullName, email, password})});
+    if (!r.ok) { showError('Registration failed. Email may already exist.'); return; }
+    document.getElementById('login-email').value = email;
+    document.getElementById('login-password').value = password;
+    switchTab('login');
+    await login();
+  } catch(e) { showError('Cannot connect to API.'); }
+}
+
+function logout() {
+  token = ''; localStorage.removeItem('ft_token');
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'flex';
+}
+
+function authHeaders() { return {'Content-Type':'application/json', 'Authorization':'Bearer '+token}; }
+
+async function showDashboard() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('dashboard').style.display = '';
+  document.getElementById('dash-date').textContent = new Date().toLocaleDateString('en-GB', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    document.getElementById('user-label').textContent = payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] || 'User';
+  } catch(e) {}
+  await Promise.all([loadAccounts(), loadTransactions(), loadReports()]);
+}
+
+async function loadAccounts() {
+  const r = await fetch(API+'/api/accounts', {headers: authHeaders()});
+  const accounts = await r.json();
+  const grid = document.getElementById('accounts-grid');
+  if (!accounts.length) { grid.innerHTML = '<div class="empty">No accounts yet</div>'; return; }
+  let totalBalance = 0;
+  grid.innerHTML = accounts.map(a => {
+    totalBalance += a.balance;
+    const isSavings = a.type === 'Savings';
+    return `<div class="account-card ${isSavings?'savings':''}">
+      <div class="account-name">${a.name}</div>
+      <div class="account-type ${isSavings?'savings':''}">${a.type}</div>
+      <div class="account-balance">${fmt(a.balance)}</div>
+      <div class="account-id">ID #${a.id} &middot; Created ${fmtDate(a.createdAt)}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('stat-balance').textContent = fmt(totalBalance);
+}
+
+async function loadTransactions() {
+  const r = await fetch(API+'/api/transactions', {headers: authHeaders()});
+  allTx = await r.json();
+  let income = 0, expenses = 0;
+  allTx.forEach(t => { if(t.type==='Credit') income+=t.amount; else if(t.type==='Debit') expenses+=t.amount; });
+  document.getElementById('stat-income').textContent = fmt(income);
+  document.getElementById('stat-expenses').textContent = fmt(expenses);
+  document.getElementById('stat-txcount').textContent = allTx.length;
+  renderTx(allTx);
+}
+
+function renderTx(txs) {
+  const list = document.getElementById('tx-list');
+  if (!txs.length) { list.innerHTML = '<div class="empty">No transactions</div>'; return; }
+  const icons = { Credit: '+', Debit: '&minus;', Transfer: '&#x21C4;' };
+  list.innerHTML = txs.slice(0, 50).map(t => `
+    <div class="tx-row">
+      <div class="tx-icon ${t.type.toLowerCase()}">${icons[t.type]||'&middot;'}</div>
+      <div class="tx-desc">
+        <div class="tx-desc-text">${t.description}</div>
+        <div class="tx-desc-meta">${t.accountName} &middot; ${fmtDate(t.date)}</div>
+      </div>
+      <div class="tx-amount ${t.type.toLowerCase()}">${t.type==='Credit'?'+':'&minus;'}${fmt(t.amount)}</div>
+    </div>`).join('');
+}
+
+function filterTx(type, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTx(type === 'all' ? allTx : allTx.filter(t => t.type === type));
+}
+
+async function loadReports() {
+  try {
+    const txr = await fetch(API+'/api/transactions', {headers: authHeaders()});
+    const txs = await txr.json();
+    const grid = document.getElementById('reports-grid');
+    const byMonth = {};
+    txs.forEach(t => {
+      const d = new Date(t.date);
+      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      if (!byMonth[key]) byMonth[key] = {income:0, expenses:0, month:d.getMonth()+1, year:d.getFullYear()};
+      if (t.type==='Credit') byMonth[key].income += t.amount;
+      else if (t.type==='Debit') byMonth[key].expenses += t.amount;
+    });
+    const months = Object.entries(byMonth).sort((a,b) => b[0].localeCompare(a[0]));
+    if (!months.length) { grid.innerHTML = '<div class="empty">No report data yet</div>'; return; }
+    grid.innerHTML = months.map(([key, data]) => {
+      const net = data.income - data.expenses;
+      const maxVal = Math.max(data.income, data.expenses);
+      const incPct = maxVal ? Math.round((data.income/maxVal)*100) : 0;
+      const expPct = maxVal ? Math.round((data.expenses/maxVal)*100) : 0;
+      return `<div class="report-card">
+        <div class="report-month">${monthName(data.month, data.year)}</div>
+        <div class="report-row"><span class="report-row-label">Income</span><span class="report-row-val" style="color:var(--accent2)">${fmt(data.income)}</span></div>
+        <div class="report-row"><span class="report-row-label">Expenses</span><span class="report-row-val" style="color:var(--danger)">${fmt(data.expenses)}</span></div>
+        <div class="report-row"><span class="report-row-label">Net</span><span class="report-row-val" style="color:${net>=0?'var(--accent2)':'var(--danger)'}">${net>=0?'+':''}${fmt(net)}</span></div>
+        <div class="bar-wrap">
+          <div class="bar-label"><span>Income</span><span>${incPct}%</span></div>
+          <div class="bar-bg"><div class="bar-fill" style="width:${incPct}%;background:var(--accent2)"></div></div>
+        </div>
+        <div class="bar-wrap" style="margin-top:0.5rem">
+          <div class="bar-label"><span>Expenses</span><span>${expPct}%</span></div>
+          <div class="bar-bg"><div class="bar-fill" style="width:${expPct}%;background:var(--danger)"></div></div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) { document.getElementById('reports-grid').innerHTML = '<div class="empty">Could not load reports</div>'; }
+}
+
+function showNewAccount() { document.getElementById('modal-bg').style.display = 'flex'; }
+function hideModal() { document.getElementById('modal-bg').style.display = 'none'; }
+
+async function createAccount() {
+  const name = document.getElementById('acc-name').value;
+  const type = document.getElementById('acc-type').value;
+  if (!name) return;
+  await fetch(API+'/api/accounts', {method:'POST', headers: authHeaders(), body: JSON.stringify({name, type})});
+  hideModal();
+  loadAccounts();
+}
+
+if (token) showDashboard();
+</script>
+</body>
+</html>

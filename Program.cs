@@ -93,6 +93,7 @@ var app = builder.Build();
     });
 
 // app.UseHttpsRedirection();
+app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 

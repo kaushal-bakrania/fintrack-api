@@ -2,7 +2,7 @@
 
 A production-grade personal finance REST API built with **ASP.NET Core 10**, **Entity Framework Core**, **SQL Server**, and **Microsoft Azure**. Designed to demonstrate real-world backend engineering patterns used in fintech and banking systems.
 
-**Live API:** http://20.68.108.61/swagger
+**Live API:** http://20.68.108.61
 
 ---
 
